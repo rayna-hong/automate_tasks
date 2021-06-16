@@ -1,0 +1,16 @@
+import os
+import pandas as pd
+
+folder = ''
+cwd    = os.path.abspath(folder)
+files  = os.listdir(cwd)
+
+df = pd.DataFrame()
+
+for file in files:
+    if file.endswith('.xlsx'):
+        df = df.append(pd.read_excel(folder + file))
+        # print(df.head())
+
+df.to_excel(folder + '', index=False)
+print("Complete")
