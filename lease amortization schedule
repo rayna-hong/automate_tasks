@@ -1,0 +1,144 @@
+from datetime import datetime
+from dateutil import relativedelta
+import calendar
+import numpy_financial as npf
+import pandas as pd
+
+# 기본 정보
+start_date = datetime(2020, 8, 4)
+end_date   = datetime(2022, 8, 3)
+
+monthly_rent = 2300
+
+# 리스 기간 구하기
+lease_term = relativedelta.relativedelta(end_date, start_date)
+number_of_months = lease_term.months + (12 * lease_term.years) + 1
+print("총 리스기간은 " + str(number_of_months) + "개월 입니다.")
+
+# 증분차입이자율 값 찾기
+folder = 'E:/3. 동남아시아지사/1. 싱가포르/013. 감사보고서/2020/4_Lease/할인율_본사/'
+rate_excel = 'valuation_통합.xlsx'
+
+df_rate = pd.read_excel(folder + rate_excel)
+
+finding_rate = df_rate[ (df_rate['년'] == start_date.year) & (df_rate['월'] == start_date.month) & (df_rate['개월'] == number_of_months) ]
+
+annual_borrowing_rate = float(finding_rate['할인율'])
+print('할인율은 {} 입니다.'.format(annual_borrowing_rate))
+monthly_borrowing_rate = annual_borrowing_rate / 100 / 12
+
+# 현재 가치 구하기
+pv_lease = round(npf.pv(monthly_borrowing_rate,
+                        number_of_months,
+                        -monthly_rent,
+                        fv=0,
+                        when='end'),2)
+
+print("리스자산/부채의 현재가치는 " + str(pv_lease) + " 입니다.")
+
+# 스케줄 날짜
+mm = 1
+year  = start_date.year
+month = start_date.month
+
+dates = ['{}-{}-{}'.format(year, month, calendar.monthrange(year, month)[1])]
+
+while mm < number_of_months:
+
+    month = month + 1
+
+    if month == 13:
+        month = 1
+        year  = year + 1
+    
+    dates.append(('{}-{}-{}'.format(year, month, calendar.monthrange(year, month)[1])))
+
+    mm = mm + 1
+
+# print(dates)
+df_dates = pd.DataFrame(dates)
+# print(df_dates)
+
+# lease liability amortization
+lease_liab_table = []
+
+for i in range(0, number_of_months + 1):
+
+    # if i == 0:
+    #     amrt = ([i, '', '', '', '', pv_lease])
+    #     lease_liab_table.append(amrt)
+
+    if i == 1:
+
+        beg_balance = pv_lease
+        interest = round((beg_balance * monthly_borrowing_rate),2)
+        payment = monthly_rent
+        end_balance = round((beg_balance + interest - payment),2)
+        amrt = ([beg_balance, interest, payment, end_balance])
+        lease_liab_table.append(amrt)
+
+    elif 1 < i < number_of_months:
+        
+        beg_balance = end_balance
+        interest = round((beg_balance * monthly_borrowing_rate),2)
+        payment = monthly_rent
+        end_balance = round((beg_balance + interest - payment),2)
+        amrt = ([beg_balance, interest, payment, end_balance])
+        lease_liab_table.append(amrt)
+    
+    elif i == number_of_months:
+
+        beg_balance = end_balance
+        interest = round((payment - beg_balance),2)
+        payment = monthly_rent
+        end_balance = 0
+        amrt = ([beg_balance, interest, payment, end_balance])
+        lease_liab_table.append(amrt)
+
+# for each_line in lease_liab_table:
+#     print('{}'.format(each_line))
+
+lease_table = pd.DataFrame(lease_liab_table)
+# print(lease_table.head())
+
+# 날짜와 상각표 합치기
+df_lease_liab = pd.concat([df_dates, lease_table], axis = 1)
+df_lease_liab.columns = ['Date', 'Beg. Liab', 'Interest', 'Payment', 'End. Liab']
+# print(df_lease_liab)
+
+# right-of-use asset
+depreciation = round((pv_lease / number_of_months),2)
+# print("매월 감가상각비는 {} 입니다.".format(depreciation))
+
+lease_asset_table = []
+
+for j in range(0, number_of_months + 1):
+
+    if j == 1:
+        beg_balance = pv_lease
+        end_balance = round((beg_balance - depreciation),2)
+        dep = [beg_balance, depreciation, end_balance]
+        lease_asset_table.append(dep)
+    
+    if 1 < j < number_of_months:
+        beg_balance = end_balance
+        end_balance = round((beg_balance - depreciation),2)
+        dep = [beg_balance, depreciation, end_balance]
+        lease_asset_table.append(dep)
+    
+    if j == number_of_months:
+        beg_balance = end_balance
+        end_balance = 0
+        depreciation = beg_balance - end_balance
+        dep = [beg_balance, depreciation, end_balance]
+        lease_asset_table.append(dep)
+
+df_lease_asset = pd.DataFrame(lease_asset_table)
+df_lease_asset.columns = ['Beg.ROU', 'Depreciation', 'End.ROU']
+# print(df_lease_asset)
+
+result = pd.concat([df_lease_liab, df_lease_asset], axis=1)
+print(result)
+# lease_table.to_excel("lease_amort_table.xlsx", index=False, header=False)
+
+
