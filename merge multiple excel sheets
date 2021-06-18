@@ -1,0 +1,11 @@
+import pandas as pd
+
+folder     = ''
+excel_file = '###.xlsx'
+
+df1 = pd.read_excel(folder + excel_file, sheet_name=None)
+df2 = pd.concat(df1, ignore_index=True)
+
+# print(df2)
+
+df2.to_excel(folder + '###.xlsx', index=False)
