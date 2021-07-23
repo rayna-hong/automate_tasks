@@ -1,0 +1,18 @@
+import img2pdf
+import os
+
+path = "///"
+
+tiff = []
+for fname in os.listdir(path):
+    if not fname.endswith(".tif"):
+        continue
+    tiff.append(fname)
+
+# print(tiff)
+
+for pdf in tiff:
+    with open(path + pdf.split(".")[0] + ".pdf", "wb") as f:
+        f.write(img2pdf.convert(path + pdf))
+
+print("complete")
