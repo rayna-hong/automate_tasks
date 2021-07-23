@@ -11,8 +11,8 @@ for fname in os.listdir(path):
 
 # print(tiff)
 
-for pdf in tiff:
-    with open(path + pdf.split(".")[0] + ".pdf", "wb") as f:
-        f.write(img2pdf.convert(path + pdf))
+for tif in tiff:
+    with open(path + tif.split(".")[0] + ".pdf", "wb") as f:
+        f.write(img2pdf.convert(path + tif))
 
 print("complete")
