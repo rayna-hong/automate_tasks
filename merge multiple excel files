@@ -1,0 +1,18 @@
+import os
+import pandas as pd
+from functools import reduce
+
+folder = '///'
+cwd    = os.path.abspath(folder)
+files  = os.listdir(cwd)
+
+data = []
+
+for file in files:
+    df = pd.read_excel(folder + file)
+    data.append(df)
+
+df_merged = reduce(lambda left, right: pd.merge(left, right, on=["///"], how="outer"), data)
+print(df_merged)
+
+df_merged.to_excel(folder + "////.xlsx", index=False)
