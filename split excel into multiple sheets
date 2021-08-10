@@ -1,0 +1,18 @@
+import pandas as pd
+
+folder = "C:/Users/NT371B5L-X31R/Desktop/"
+file = "216_input_gst.xlsx"
+
+writer = pd.ExcelWriter(folder + "216_input_yearly.xlsx")
+
+gst = pd.read_excel(folder + file)
+
+year = list(range(2014, 2022))
+
+for i in year:
+    df = gst[gst['Year'] == i]
+    df.to_excel(writer, f'sheet_{i}', header=False, index=False)
+
+writer.save()
+
+print("complete")
