@@ -5,26 +5,45 @@ import numpy_financial as npf
 import pandas as pd
 
 # 기본 정보
-start_date = datetime(2021, 12, 10)
-end_date   = datetime(2023, 12, 9)
+site_name  = 'Branch'
+start_date = datetime(2021, 10, 12)
+end_date   = datetime(2026, 10, 11)
 
-monthly_rent = 4200
+monthly_rent = 1337.5
+
+fetch_brate = True
+#fetch_brate = False
+
+description = 'Duo Residences #08-04'
+
+# 현장 매핑
+site = {
+    'Branch' : '3D480',
+    'Woodlands' : 'OAAT1',
+    'J109'  : 'OCAS1',
+    'CR108' : 'OCBA1'
+}
 
 # 리스 기간 구하기
 lease_term = relativedelta.relativedelta(end_date, start_date)
 number_of_months = lease_term.months + (12 * lease_term.years) + 1
-print("총 리스기간은 " + str(number_of_months) + "개월 입니다.")
+#print("총 리스기간은 " + str(number_of_months) + "개월 입니다.")
 
-# 증분차입이자율 값 찾기
-folder = 'C:/Users/15Z995/Dropbox/02. 업무/3. 동남아시아지사/1. 싱가포르/013. 감사보고서/2020/4_Lease/할인율_본사/'
-rate_excel = 'valuation_통합.xlsx'
+if fetch_brate:
+    # 증분차입이자율 값 찾기
+    folder = '/Users/hyeryounhong/Dropbox/02. 업무/3. 동남아시아지사/1. 싱가포르/013. 감사보고서/2020/4_Lease/할인율_본사/'
+    rate_excel = 'valuation_통합.xlsx'
 
-df_rate = pd.read_excel(folder + rate_excel)
+    df_rate = pd.read_excel(folder + rate_excel)
 
-finding_rate = df_rate[ (df_rate['년'] == start_date.year) & (df_rate['월'] == start_date.month) & (df_rate['개월'] == number_of_months) ]
+    finding_rate = df_rate[ (df_rate['년'] == start_date.year) & (df_rate['월'] == start_date.month) & (df_rate['개월'] == number_of_months) ]
 
-annual_borrowing_rate = float(finding_rate['할인율'])
-print('할인율은 {} 입니다.'.format(annual_borrowing_rate))
+    annual_borrowing_rate = float(finding_rate['할인율'])
+else: 
+    # 증분이자율 직접 입력하는 경우
+    annual_borrowing_rate = 6.2
+
+#print('할인율은 {} 입니다.'.format(annual_borrowing_rate))
 monthly_borrowing_rate = annual_borrowing_rate / 100 / 12
 
 # 현재 가치 구하기
@@ -34,7 +53,16 @@ pv_lease = round(npf.pv(monthly_borrowing_rate,
                         fv=0,
                         when='end'),2)
 
-print("리스자산/부채의 현재가치는 " + str(pv_lease) + " 입니다.")
+#pv_lease = 33087.63
+#print("리스자산/부채의 현재가치는 " + str(pv_lease) + " 입니다.")
+
+summary = pd.DataFrame(
+    [[site.get(site_name), site_name, description, start_date.strftime('%Y-%m-%d'), end_date.strftime('%y-%m-%d'), number_of_months, annual_borrowing_rate/12]],
+    columns = ['Code', 'Site', 'Description', 'Start', 'End', 'Period', 'Rate'],
+    )
+
+print(summary)
+print('-' * 90)
 
 # 스케줄 날짜
 mm = 1
@@ -126,6 +154,7 @@ df_lease_asset.columns = ['Beg.ROU', 'Depreciation', 'End.ROU']
 
 result = pd.concat([df_lease_liab, df_lease_asset], axis=1)
 print(result)
+print('-' * 115)
 # lease_table.to_excel("lease_amort_table.xlsx", index=False, header=False)
 
 int_sum = 0
@@ -135,38 +164,43 @@ pay_sum = 0
 BegB = 0
 EndB = 0
 
+JournalEntry = []
+
 ## 일반 원장 출력
 def PrintJE_General(year, pay_sum, int_sum, dep_sum, BegB = 0, EndB = 0):
-    print('###' + str(year))
+    JournalEntry.append(['###' + str(year)])
 
     je_date = str(year)+'.12.31'
 
-    if (BegB != 0) & (EndB != 0):
+    if (BegB != 0):
         C_liab  = BegB - EndB
         NC_liab = BegB - C_liab
 
-        print('12900001', 'Lease right asset', '-', je_date, je_date, '-', '-', '-', 'SGD', BegB, 0)
-        print('21990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, C_liab)
-        print('22990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, NC_liab)    
+        JournalEntry.append([site.get(site_name), site_name, '12900001', 'Lease right asset', '-', je_date, je_date, '-', '-', '-', 'SGD', BegB, 0])
+        JournalEntry.append([site.get(site_name), site_name, '21990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, C_liab])
+        
+        if NC_liab != 0:
+            JournalEntry.append([site.get(site_name), site_name, '22990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, NC_liab]) 
     
-    print('21990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', pay_sum - int_sum, 0)
-    print('66151021', 'Financial expense -', '-', je_date, je_date, '-', '-', '-', 'SGD', int_sum, 0)
-    print('53280001', 'Depreciation Expense', '-', je_date, je_date, '-', '-', '-', 'SGD', dep_sum, 0)
-    print('53201851', 'Rental Expenses-leas', '-', je_date, je_date, '-', '-', '-', 'SGD', -pay_sum, 0)
-    print('12910001', 'Lease right asset-Ac', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, dep_sum)
+    JournalEntry.append([site.get(site_name), site_name, '21990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', pay_sum - int_sum, 0])
+    JournalEntry.append([site.get(site_name), site_name, '66151021', 'Financial expense -', '-', je_date, je_date, '-', '-', '-', 'SGD', int_sum, 0])
+    JournalEntry.append([site.get(site_name), site_name, '53280001', 'Depreciation Expense', '-', je_date, je_date, '-', '-', '-', 'SGD', dep_sum, 0])
+    JournalEntry.append([site.get(site_name), site_name, '53201851', 'Rental Expenses-leas', '-', je_date, je_date, '-', '-', '-', 'SGD', -pay_sum, 0])
+    JournalEntry.append([site.get(site_name), site_name, '12910001', 'Lease right asset-Ac', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, dep_sum])
 
 ## 비유동->유동으로 전환
 def PrintJE_Transfer(year, pay_sum, int_sum):
     je_date = str(year)+'.12.31'
 
-    print('21990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, pay_sum - int_sum)
-    print('22990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', pay_sum - int_sum, 0)
+    JournalEntry.append([site.get(site_name), site_name, '21990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, pay_sum - int_sum])
+    JournalEntry.append([site.get(site_name), site_name, '22990001', 'Lease/Liabilities', '-', je_date, je_date, '-', '-', '-', 'SGD', pay_sum - int_sum, 0])
 
+## 리스자산, 감가상각누계액 정리
 def PrintJE_Final(year, BegB):
     je_date = str(year)+'.12.31'
 
-    print('12900001', 'Lease right asset', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, BegB)
-    print('12910001', 'Lease right asset-Ac', '-', je_date, je_date, '-', '-', '-', 'SGD', BegB, 0)
+    JournalEntry.append([site.get(site_name), site_name, '12900001', 'Lease right asset', '-', je_date, je_date, '-', '-', '-', 'SGD', 0, BegB])
+    JournalEntry.append([site.get(site_name), site_name, '12910001', 'Lease right asset-Ac', '-', je_date, je_date, '-', '-', '-', 'SGD', BegB, 0])
 
 
 ## 1차년도 원장 값 구하기
@@ -215,3 +249,5 @@ for i in result.index:
         if i == len(result) - 1:
             PrintJE_Final(target_year, result['Beg. Liab'][0])
 
+entries = pd.DataFrame(JournalEntry).fillna('')
+print(entries)
