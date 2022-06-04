@@ -1,0 +1,89 @@
+import pyautogui
+from datetime import datetime
+import numpy as np
+import cv2
+
+now = datetime.now().time()
+start_time = now.strftime("%H:%M")
+print("시작 :", start_time)
+
+path  = 'C:/xxx/02. 업무/xxx/'
+file1 = 'pop-up.png'
+file2 = 'pop-up2.png'
+file3 = 'pop-up3.png'
+
+n1    = np.fromfile(path+file1, np.uint8)
+img1  = cv2.imdecode(n1, cv2.IMREAD_COLOR)
+
+n2    = np.fromfile(path+file2, np.uint8)
+img2  = cv2.imdecode(n2, cv2.IMREAD_COLOR)
+
+n3    = np.fromfile(path+file3, np.uint8)
+img3  = cv2.imdecode(n3, cv2.IMREAD_COLOR)
+
+# 지사면 True, 현장이면 False
+#branch = True
+branch = False
+
+# 처리 건수를 입력
+n = 1
+
+i = 0
+while i < n: 
+
+    print("처리중 {}/{}".format(i+1,n))
+
+    pyautogui.sleep(3)
+    pyautogui.moveTo(382, 318)
+    pyautogui.click()
+    pyautogui.doubleClick()
+    pyautogui.sleep(3)
+
+    # 기표
+    print("기표")
+    pyautogui.keyDown('shift')
+    pyautogui.keyDown('f1')
+    pyautogui.keyUp('shift')
+    pyautogui.keyUp('f1')
+    pyautogui.sleep(3)
+
+    while True:
+        pyautogui.sleep(2)
+        if pyautogui.locateOnScreen(img3, confidence=0.9):
+            pyautogui.press('enter')
+
+        elif pyautogui.locateOnScreen(img2, confidence=0.9):
+            pyautogui.press('enter')            
+        
+        elif pyautogui.locateOnScreen(img1, confidence=0.9):
+            pyautogui.press('f8')
+
+        else:
+            break
+
+    if branch:
+        
+        # 지사-전기        
+        pyautogui.sleep(1)
+        print("전기")
+        pyautogui.press('enter')
+        pyautogui.sleep(3)
+
+    else:
+        # 현장-전기
+        print("전기")
+        pyautogui.keyDown('ctrl')
+        pyautogui.keyDown('s')
+        pyautogui.keyUp('ctrl')
+        pyautogui.keyUp('s')
+        pyautogui.sleep(4)    
+    
+    # 뒤로가기
+    print("뒤로가기")
+    pyautogui.press('f3')
+
+    i += 1
+
+now = datetime.now().time()
+end_time = now.strftime("%H:%M")
+print("총 {}건 완료. 종료 : {}".format(i, end_time))
