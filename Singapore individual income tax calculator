@@ -2,7 +2,7 @@ from datetime import datetime
 
 # 근무 시작일/종료일 입력
 start_date = "2021-09-26"
-end_date = "2022-03-18"
+end_date = "2022-03-31"
 
 # 신고 소득 입력
 salary = 72477
@@ -72,7 +72,7 @@ def tax(income, ndays):
         else:
             tax = tax_flat
 
-        return round(tax, 2)
+    return round(tax, 2)
 
 
 ndays = days_of_stay(start_date, end_date)
