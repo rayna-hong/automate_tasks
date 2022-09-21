@@ -1,60 +1,99 @@
-# 신고 소득과 기본 공제 금액을 입력
-salary          = 
-personal_relief = 1000
+from datetime import datetime
 
-chargeable_income = salary - personal_relief
+# 근무 시작일/종료일 입력
+start_date = "2021-09-26"
+end_date = "2022-03-18"
+
+# 신고 소득 입력
+salary = 72477
+
+# 체류일수 계산
+def days_of_stay(start, end):
+
+    a = datetime.strptime(start, "%Y-%m-%d")
+    b = datetime.strptime(end, "%Y-%m-%d")
+    ndays = (b - a).days
+
+    return ndays
+
+
+def income(salary, ndays):
+
+    if ndays >= 183:
+        personal_relief = 1000
+    else:
+        personal_relief = 0
+
+    chargeable_income = salary - personal_relief
+
+    return chargeable_income
+
 
 # 소득세 계산
-def income_tax_calculation(income):
+def progressive(income):
 
     if income <= 20000:
         tax = 0
-
     elif 20000 < income <= 30000:
         tax = (income - 20000) * 0.02
-
     elif 30000 < income <= 40000:
         tax = 200 + (income - 30000) * 0.035
-
     elif 40000 < income <= 80000:
         tax = 550 + (income - 40000) * 0.07
-
     elif 80000 < income <= 120000:
         tax = 3350 + (income - 80000) * 0.115
-
     elif 120000 < income <= 160000:
         tax = 7950 + (income - 120000) * 0.15
-    
     elif 160000 < income <= 200000:
         tax = 13950 + (income - 160000) * 0.18
-
     elif 200000 < income <= 240000:
         tax = 21150 + (income - 200000) * 0.19
-    
     elif 240000 < income <= 280000:
         tax = 28750 + (income - 240000) * 0.195
-    
     elif 280000 < income <= 320000:
         tax = 36550 + (income - 280000) * 0.20
-
     elif 320000 < income:
-        tax = 44550 + (income - 320000) * 0.22   
+        tax = 44550 + (income - 320000) * 0.22
 
     return round(tax, 2)
 
-notional_tax_payable = income_tax_calculation(chargeable_income)
-print("회사 대납 소득세가 없는 경우 납부할 세액은 " + str(round(notional_tax_payable, 2)) + " 입니다.")
+
+def tax(income, ndays):
+
+    if ndays >= 183:
+        tax = progressive(income)
+
+    else:
+        tax_prog = progressive(income)
+        tax_flat = income * 0.15
+
+        if tax_prog > tax_flat:
+            tax = tax_prog
+        else:
+            tax = tax_flat
+
+        return round(tax, 2)
+
+
+ndays = days_of_stay(start_date, end_date)
+print("Number of days : " + str(ndays))
+
+chargeable_income = income(salary, ndays)
+print("Total Employment Income : " + str(salary))
+print("Chargeable Income : " + str(chargeable_income))
+
+notional_tax_payable = tax(chargeable_income, ndays)
+print("Notional Tax Payable to Regross : " + str(notional_tax_payable))
 
 # tax-on-tax computation
-tax_allowance    = income_tax_calculation(chargeable_income + notional_tax_payable)
+tax_allowance = tax((chargeable_income + notional_tax_payable), ndays)
 tax_remuneration = tax_allowance - notional_tax_payable
 
 while tax_allowance - notional_tax_payable != 0:
 
     notional_tax_payable = notional_tax_payable + tax_remuneration
-    tax_allowance        = income_tax_calculation(chargeable_income + notional_tax_payable)    
-    tax_remuneration     = tax_allowance - notional_tax_payable    
+    tax_allowance = tax((chargeable_income + notional_tax_payable), ndays)
+    tax_remuneration = tax_allowance - notional_tax_payable
 
-print("회사 대납 소득세가 있는 경우 납부할 세액은 " + str(round(tax_allowance, 2)) + " 입니다.")
-
-
+print("Tax Allowance for Employment : " + str(tax_allowance))
+print("Tax Payable : " + str(round(tax_allowance, 2)))
